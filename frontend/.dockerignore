@@ -1,0 +1,8 @@
+node_modules
+.angular
+dist
+pnpm-store
+npm-debug.log
+.git
+.gitignore
+

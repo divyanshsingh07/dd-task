@@ -1,0 +1,65 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+env:
+  BACKEND_IMAGE: arshthakur/dd-task-backend
+  FRONTEND_IMAGE: arshthakur/dd-task-frontend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ env.BACKEND_IMAGE }}:latest
+
+      - name: Build & push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ env.FRONTEND_IMAGE }}:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VM
+        uses: appleboy/ssh-action@v1.3.1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            docker pull $BACKEND_IMAGE:latest
+            docker pull $FRONTEND_IMAGE:latest
+            docker stop dd-task-backend || true
+            docker rm dd-task-backend || true
+            docker stop dd-task-frontend || true
+            docker rm dd-task-frontend || true
+            docker run -d --name dd-task-backend -p 8080:8080 \
+              -e MONGO_URL="${{ secrets.MONGO_URL }}" \
+              $BACKEND_IMAGE:latest
+            docker run -d --name dd-task-frontend -p 80:80 \
+              $FRONTEND_IMAGE:latest
+
