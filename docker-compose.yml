@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  backend:
+    image: arshthakur/dd-task-backend:latest
+    container_name: dd-task-backend
+    restart: unless-stopped
+    environment:
+      - MONGO_URL=${MONGO_URL}
+    ports:
+      - "8080:8080"
+
+  frontend:
+    image: arshthakur/dd-task-frontend:latest
+    container_name: dd-task-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+

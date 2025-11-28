@@ -3,12 +3,31 @@ const cors = require("cors");
 
 const app = express();
 
+const defaultOrigins = [
+  "http://localhost",
+  "http://localhost:8080",
+  "http://localhost:8081",
+  "http://13.127.186.219",
+  "http://13.127.186.219:80"
+];
+
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map(origin => origin.trim())
+  : defaultOrigins;
+
 const corsOptions = {
-  origin: "http://localhost:8081",
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`Origin ${origin} not allowed by CORS`), false);
+  },
+  credentials: true,
   optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 // parse requests of content-type - application/json
 app.use(express.json());
